@@ -1,112 +1,97 @@
-const { tasks, getNextId } = require("../data/tasks");
+const Task = require("../models/Task");
 
-// ─── GET /tasks ───────────────────────────────────────────────
-// Fetch all tasks
-const getAllTasks = (req, res) => {
-  res.status(200).json({
-    success: true,
-    count: tasks.length,
-    data: tasks,
-  });
+// GET all tasks
+const getAllTasks = async (req, res, next) => {
+  try {
+    const tasks = await Task.find();
+    const count = await Task.countDocuments();
+
+    res.status(200).json({
+      success: true,
+      count,
+      data: tasks,
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
-// ─── GET /tasks/:id ───────────────────────────────────────────
-// Fetch a single task by ID
-const getTaskById = (req, res) => {
-  const id = parseInt(req.params.id);
-  const task = tasks.find((t) => t.id === id);
+// GET task by ID
+const getTaskById = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.id);
 
-  if (!task) {
-    return res.status(404).json({
-      success: false,
-      message: `Task with id ${id} not found`,
-    });
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    res.status(200).json({ success: true, data: task });
+  } catch (err) {
+    next(err);
   }
-
-  res.status(200).json({ success: true, data: task });
 };
 
-// ─── POST /tasks ──────────────────────────────────────────────
-// Create a new task
-const createTask = (req, res) => {
-  const { title, description, completed } = req.body;
+// CREATE task
+const createTask = async (req, res, next) => {
+  try {
+    const task = await Task.create(req.body);
 
-  // Basic validation
-  if (!title || title.trim() === "") {
-    return res.status(400).json({
-      success: false,
-      message: "Title is required",
+    res.status(201).json({
+      success: true,
+      data: task,
     });
+  } catch (err) {
+    next(err);
   }
-
-  const newTask = {
-    id: getNextId(),
-    title: title.trim(),
-    description: description ? description.trim() : "",
-    completed: completed === true ? true : false,
-  };
-
-  tasks.push(newTask);
-
-  res.status(201).json({ success: true, data: newTask });
 };
 
-// ─── PUT /tasks/:id ───────────────────────────────────────────
-// Update an existing task by ID
-const updateTask = (req, res) => {
-  const id = parseInt(req.params.id);
-  const taskIndex = tasks.findIndex((t) => t.id === id);
+// UPDATE task
+const updateTask = async (req, res, next) => {
+  try {
+    const updated = await Task.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
 
-  if (taskIndex === -1) {
-    return res.status(404).json({
-      success: false,
-      message: `Task with id ${id} not found`,
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: updated,
     });
+  } catch (err) {
+    next(err);
   }
-
-  const { title, description, completed } = req.body;
-
-  // Basic validation
-  if (title !== undefined && title.trim() === "") {
-    return res.status(400).json({
-      success: false,
-      message: "Title cannot be empty",
-    });
-  }
-
-  // Merge existing fields with updated fields
-  const updatedTask = {
-    ...tasks[taskIndex],
-    title:       title       !== undefined ? title.trim()       : tasks[taskIndex].title,
-    description: description !== undefined ? description.trim() : tasks[taskIndex].description,
-    completed:   completed   !== undefined ? completed          : tasks[taskIndex].completed,
-  };
-
-  tasks[taskIndex] = updatedTask;
-
-  res.status(200).json({ success: true, data: updatedTask });
 };
 
-// ─── DELETE /tasks/:id ────────────────────────────────────────
-// Delete a task by ID
-const deleteTask = (req, res) => {
-  const id = parseInt(req.params.id);
-  const taskIndex = tasks.findIndex((t) => t.id === id);
+// DELETE task
+const deleteTask = async (req, res, next) => {
+  try {
+    const deleted = await Task.findByIdAndDelete(req.params.id);
 
-  if (taskIndex === -1) {
-    return res.status(404).json({
-      success: false,
-      message: `Task with id ${id} not found`,
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Task deleted",
     });
+  } catch (err) {
+    next(err);
   }
-
-  const deleted = tasks.splice(taskIndex, 1);
-
-  res.status(200).json({
-    success: true,
-    message: `Task with id ${id} deleted successfully`,
-    data: deleted[0],
-  });
 };
 
-module.exports = { getAllTasks, getTaskById, createTask, updateTask, deleteTask };
+module.exports = { getAllTasks, getTaskById, createTask, updateTask, deleteTask, };
