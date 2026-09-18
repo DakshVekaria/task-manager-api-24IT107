@@ -1,10 +1,21 @@
 const Task = require("../models/Task");
+const cache = require("../utils/cache");
 
 // GET all tasks
 const getAllTasks = async (req, res, next) => {
   try {
+    const cacheKey = 'all_tasks';
+    const cached = cache.get(cacheKey);
+
+    if (cached) {
+      console.log('Cache HIT for all_tasks');
+      return res.json(cached);
+    }
+
+    console.log('Cache MISS for all_tasks');
     const tasks = await Task.find();
     const count = await Task.countDocuments();
+    cache.set(cacheKey, tasks);
 
     res.status(200).json({
       success: true,
@@ -19,6 +30,14 @@ const getAllTasks = async (req, res, next) => {
 // GET task by ID
 const getTaskById = async (req, res, next) => {
   try {
+    // const cacheKey = 'task_${req.params.id}';
+    // const cached = cache.get(cacheKey);
+
+    // if (cached) {
+    //   console.log('Cache HIT for task_${req.params.id}');
+    //   return res.json(cached);
+    // }
+
     const task = await Task.findById(req.params.id);
 
     if (!task) {
@@ -28,6 +47,7 @@ const getTaskById = async (req, res, next) => {
       });
     }
 
+    // cache.set(cacheKey, task);
     res.status(200).json({ success: true, data: task });
   } catch (err) {
     next(err);
@@ -38,6 +58,8 @@ const getTaskById = async (req, res, next) => {
 const createTask = async (req, res, next) => {
   try {
     const task = await Task.create(req.body);
+    cache.del('all_tasks'); // invalidate
+    cache.del(`task_${req.params.id}`); // invalidate specific task cache
 
     res.status(201).json({
       success: true,
@@ -64,6 +86,8 @@ const updateTask = async (req, res, next) => {
       });
     }
 
+    cache.del('all_tasks'); // invalidate
+    cache.del(`task_${req.params.id}`); // invalidate specific task cache
     res.status(200).json({
       success: true,
       data: updated,
@@ -84,6 +108,9 @@ const deleteTask = async (req, res, next) => {
         message: "Task not found",
       });
     }
+
+    cache.del('all_tasks'); // invalidate
+    cache.del(`task_${req.params.id}`); // invalidate specific task cache
 
     res.status(200).json({
       success: true,
