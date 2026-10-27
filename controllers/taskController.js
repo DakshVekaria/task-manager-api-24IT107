@@ -1,5 +1,6 @@
 const Task = require("../models/Task");
 const cache = require("../utils/cache");
+const taskEvents = require('../middleware/event');
 
 // GET all tasks
 const getAllTasks = async (req, res, next) => {
@@ -61,10 +62,21 @@ const createTask = async (req, res, next) => {
     cache.del('all_tasks'); // invalidate
     cache.del(`task_${req.params.id}`); // invalidate specific task cache
 
+    console.log('[API] Response sent at:', new Date().toISOString());
+
     res.status(201).json({
       success: true,
       data: task,
     });
+
+    setImmediate(()=> {
+      try{
+        taskEvents.emit('task-created', task);
+      } 
+      catch(error){
+        taskEvents.emit('Error', error);
+      }
+    })
   } catch (err) {
     next(err);
   }
@@ -116,6 +128,10 @@ const deleteTask = async (req, res, next) => {
       success: true,
       message: "Task deleted",
     });
+
+    setImmediate(() => {
+      taskEvents.emit('task-deleted', deleted);
+    })
   } catch (err) {
     next(err);
   }

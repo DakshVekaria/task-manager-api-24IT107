@@ -3,6 +3,7 @@ const app = express();
 const PORT = 3000;
 const mongoose = require("mongoose");
 require('dotenv').config();
+require('./middleware/listner');
 
 const cors = require("cors");
 app.use(cors());
