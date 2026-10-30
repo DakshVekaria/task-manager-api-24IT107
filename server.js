@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 // Simple route with no DB or login, used by the CI test
-app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
+// app.get("/health", (req, res) => res.status(200).json({ status: "ok" }));
 
 app.use("/tasks", require("./routes/taskRoutes"));
 app.use(require("./routes/auth"));
